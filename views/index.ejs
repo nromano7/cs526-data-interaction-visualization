@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+
+  <title>Match System</title>
+
+  <!-- META -->
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <!-- CSS -->
+  <link rel="stylesheet" type="text/css" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" type="text/css" href="/css/custom.css">
+  <link rel="stylesheet" type="text/css" href="/css/tree.css">
+
+
+  <!-- JS -->
+  <script type="text/javascript" src="/js/fontawesome-all.js"></script>
+  <script type="text/javascript" src="/js/d3.js"></script>
+  <script type="text/javascript" src="/js/3D_Matching_Algorithm.js"></script>
+  <script type="text/javascript" src="/js/tree.js"></script>
+  <script type="text/javascript" src="/js/tables.js"></script>
+  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+    crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+    crossorigin="anonymous"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+    crossorigin="anonymous"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+  <script>
+    var s_list = <%- JSON.stringify(s) %>;
+    var p_list = <%- JSON.stringify(p) %>;
+    var c_list = <%- JSON.stringify(c) %>;
+    var a_list = <%- JSON.stringify(a) %>;
+  </script>
+
+  <script>
+    var dictionary = {};
+
+    for (let i = 0; i < a_list.length; i++) {
+      var temp = []
+      for (let j = 1; j < a_list[i].length; j++) {
+        temp.push(a_list[i][j]);
+      }
+      dictionary[temp] = a_list[i];
+    }
+
+    var s_dict = {};
+    var p_dict = {};
+    var c_dict = {};
+    for (let i = 0; i < a_list.length; i++) {
+      var temp = parseInt(a_list[i][1].substring(1));
+      s_dict[a_list[i][1]] = s_list[temp - 1][1];
+      temp = parseInt(a_list[i][2].substring(1));
+      p_dict[a_list[i][2]] = p_list[temp - 1][1];
+      temp = parseInt(a_list[i][3].substring(1));
+      c_dict[a_list[i][3]] = c_list[temp - 1][1] + "\t" + c_list[temp - 1][2];
+    }
+  </script>
+
+  <script>
+    var priority_list = [];
+    var last = {
+      students: [true, null],
+      professors: [false, null],
+      courses: [false, null]
+    };
+  </script>
+
+  <!-- AUTOCOMPLETE -->
+  <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+  <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  <style>
+    .ui-autocomplete {
+      max-height: 200px;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    * html .ui-autocomplete {
+      height: 100px;
+    }
+  </style>
+
+  <script>
+    var availableTags = [];
+    for (let i = 0; i < s_list.length; i++) {
+      availableTags.push(s_list[i][1]);
+    }
+    for (let i = 0; i < p_list.length; i++) {
+      availableTags.push(p_list[i][1]);
+    }
+    for (let i = 0; i < c_list.length; i++) {
+      availableTags.push(c_list[i][1]);
+    }
+    $(function () {
+      $("#search_input").autocomplete({
+        source: availableTags
+      });
+    });
+  </script>
+</head>
+
+<body>
+  <div class="grid-container">
+    <!-- NAVBAR -->
+    <div class="navbar-container">
+      <nav id="nav" class="navbar navbar-expand navbar-dark bg-dark justify-content-between" style="padding-top:0rem;padding-bottom:0rem;">
+        <img src="./images/rutgers_logo_865_768.png" width="40" height="40" class="d-inline-block align-top" alt="">
+        <span class='align-bottom m-2'>
+          <h2 class="mb-0" style="color:white;">Match System</h2>
+        </span>
+      </nav>
+    </div>
+
+    <!-- UTILITIES -->
+    <div class="utilities-container">
+      <div class="row justify-content-between">
+        <div class="col-lg-6">
+          <form onsubmit='return false;' autocomplete="off">
+            <div class="form-row align-items-center">
+              <div class="col-lg">
+                <input id="search_input" type="text" class="form-control" placeholder="Search">
+              </div>
+              <div class="col-auto">
+                <button id="submit-btn" class="btn btn-outline-primary">Submit</button>
+              </div>
+            </div>
+          </form>
+          <script>
+            document.getElementById('submit-btn').addEventListener('click', function () {
+              document.getElementById("students_button").setAttribute("class", "btn btn-outline-primary m-1");
+              document.getElementById("professors_button").setAttribute("class", "btn btn-outline-info m-1");
+              document.getElementById("courses_button").setAttribute("class", "btn btn-outline-secondary m-1");
+
+              var temp_s_dict = {};
+              var temp_p_dict = {};
+              var temp_c_dict = {};
+              for (let i = 0; i < a_list.length; i++) {
+                var temp = parseInt(a_list[i][1].substring(1));
+                temp_s_dict[s_list[temp - 1][1]] = a_list[i][1];
+                temp = parseInt(a_list[i][2].substring(1));
+                temp_p_dict[p_list[temp - 1][1]] = a_list[i][2];
+                temp = parseInt(a_list[i][3].substring(1));
+                temp_c_dict[c_list[temp - 1][1]] = a_list[i][3];
+              }
+
+              var input = document.getElementById("search_input");
+              var old_treeData = treeData;
+              var is_correct = true;
+              for (let i = 0; i < 4; i++) {
+                try {
+                  if (i == 0)
+                    treeData = generateNodeJSON(temp_s_dict[input.value]);
+                  if (i == 1)
+                    treeData = generateNodeJSON(temp_p_dict[input.value]);
+                  if (i == 2)
+                    treeData = generateNodeJSON(temp_c_dict[input.value]);
+                  if (i == 3)
+                    treeData = generateNodeJSON(input.value);
+                } catch (err) {
+                  if (i == 3)
+                    is_correct = false;
+                  continue;
+                }
+                break;
+              }
+              if (!is_correct) {
+                treeData = old_treeData;
+                window.alert("No element found matching the search terms.");
+                return;
+              }
+              var new_margin = {
+                top: 10,
+                right: 10,
+                bottom: 100,
+                left: 180
+              };
+              // save previous 
+              if (last.students[0]) {
+                last.students[1] = document.getElementById('tree_svg');
+              } else if (last.professors[0]) {
+                last.professors[1] = document.getElementById('tree_svg');
+              } else if (last.courses[0]) {
+                last.courses[1] = document.getElementById('tree_svg');
+              }
+              // remove
+              d3.selectAll("#tree_svg").remove();
+
+              render_tree(treeData, size, new_margin, true);
+
+              last.students[0] = false;
+              last.professors[0] = false;
+              last.courses[0] = false;
+            })
+          </script>
+        </div>
+        <div class="col-auto text-right">
+          <button type="button" class="btn btn-primary" id="remove_priority_button" style="visibility:hidden;padding-left:.4rem;padding-right:.4rem;"
+            disabled>Remove Priority</button>
+          <script>
+            document.getElementById("remove_priority_button").addEventListener("click", function () {
+              priority_list.splice(selected_priority_index, 1);
+              selected_priority_index = -1;
+              document.getElementById("remove_priority_button").disabled = true;
+              document.getElementById("remove_priority_button").style.visibility = 'hidden';
+              document.getElementById("priorities").innerHTML = priority_list.length;
+              window.alert("Application successfully removed from the priority list.");
+              var entry = [];
+              for (let i = 0; i < priority_list.length; i++)
+                entry.push(dictionary[priority_list[i]]);
+              document.getElementById("priorities_table_body").innerHTML = update_priorities_table(entry);
+              addListenersToPriorities(entry);
+              document.getElementById("apps_table_body").innerHTML = update_apps_table();
+              addListenersToApps();
+              document.getElementById("warn").style.visibility = 'visible';
+            });
+          </script>
+          <button type="button" class="btn btn-secondary" id="clickMe" style="justify-content:center;padding-left:.4rem;padding-right:.4rem;">Generate Matching</button>
+          <script>
+            document.getElementById("clickMe").addEventListener("click", function () {
+              var entry = [];
+              for (let i = 0; i < priority_list.length; i++)
+                entry.push(dictionary[priority_list[i]]);
+              var temp = [];
+              var best = [];
+              for (let i = 0; i < 20; i++) {
+                temp = generateMatching(s_list, p_list, c_list, a_list, entry);
+                if (temp.length >= best.length)
+                  best = temp.slice();
+              }
+              matches = best.slice();
+              document.getElementById("matches").innerHTML = matches.length;
+              document.getElementById("matches_table_body").innerHTML = update_matching_table();
+              addListenersToMatches();
+              document.getElementById("warn").style.visibility = 'hidden';
+              $("#check").fadeIn();
+              $("#check").fadeOut();
+            });
+          </script>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TABLES -->
+    <div class="tables-container">
+      <ul class="nav nav-tabs" id="myTab" role="tablist">
+        <li class="nav-item">
+          <a class="nav-link active" id="apps-tab" data-toggle="tab" href="#apps-table" role="tab" aria-controls="apps-table" aria-selected="true">
+            Applications
+            <span class="badge badge-pill badge-secondary">
+              <script>
+                document.write(a_list.length);
+              </script>
+            </span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" id="priorities-tab" data-toggle="tab" href="#priorities-table" role="tab" aria-controls="priorities-table"
+            aria-selected="false">
+            Priorities
+            <span class="badge badge-pill badge-secondary" id="priorities">0</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" id="contact-tab" data-toggle="tab" href="#matches-table" role="tab" aria-controls="matches-table" aria-selected="false">
+            Matches
+            <span class="badge badge-pill badge-secondary" id="matches">--</span>
+            <i id="warn" class="fas fa-exclamation-triangle text-danger" style="visibility:hidden;"></i>
+            <i id="check" class="fas fa-check-square text-success" style="display:none;"></i>
+          </a>
+        </li>
+      </ul>
+      <div class="tab-content" id="myTabContent">
+        <div class="tab-pane fade show active p-0" id="apps-table" role="tabpanel" aria-labelledby="apps-tab">
+          <div style="height: 80vh; overflow: auto;">
+            <table id="table-apps" class="table table-hover table-sm">
+              <thead class="thead-light">
+                <tr>
+                  <th id="app_sort1" scope="col" style="width: 20%; padding-right:10px; border-left:1px solid #dee2e6; border-right:1px solid #dee2e6">
+                    <i class="fas fa-sort"></i> Application</th>
+                  <th id="s_sort1" scope="col" style="width: 22%; padding-right:10px; border-right:1px solid #dee2e6">
+                    <i class="fas fa-sort"></i> Student</th>
+                  <th id="p_sort1" scope="col" style="width: 22%; padding-right:10px; border-right:1px solid #dee2e6">
+                    <i class="fas fa-sort"></i> Professor</th>
+                  <th id="c_sort1" scope="col" style="padding-right:10px; border-right:1px solid #dee2e6">
+                    <i class="fas fa-sort"></i> Course</th>
+                </tr>
+              </thead>
+              <tbody id="apps_table_body">
+              </tbody>
+            </table>
+          </div>
+
+          <script>
+            document.getElementById("apps_table_body").innerHTML = update_apps_table();
+            addListenersToApps();
+          </script>
+        </div>
+        <div class="tab-pane fade" id="priorities-table" role="tabpanel" aria-labelledby="priorities-tab">
+          <div style="height: 80vh; overflow: auto;">
+            <table class="table table-hover table-sm">
+              <thead class="thead-light">
+                <tr>
+                  <th id="app_sort2" scope="col" style="width: 20%; padding-right:10px; border-left:1px solid #dee2e6; border-right:1px solid #dee2e6">
+                    <i class="fas fa-sort"></i> Application</th>
+                  <th id="s_sort2" scope="col" style="width: 22%; padding-right:10px; border-right:1px solid #dee2e6">
+                    <i class="fas fa-sort"></i> Student</th>
+                  <th id="p_sort2" scope="col" style="width: 22%; padding-right:10px; border-right:1px solid #dee2e6">
+                    <i class="fas fa-sort"></i> Professor</th>
+                  <th id="c_sort2" scope="col" style="padding-right:10px; border-right:1px solid #dee2e6">
+                    <i class="fas fa-sort"></i> Course</th>
+                </tr>
+              </thead>
+              <tbody id="priorities_table_body">
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="tab-pane fade" id="matches-table" role="tabpanel" aria-labelledby="matches-tab">
+          <div style="height: 80vh; overflow: auto;">
+            <table class="table table-hover table-sm">
+              <thead class="thead-light">
+                <tr>
+                  <th id="app_sort" scope="col" style="width: 20%; padding-right:10px; border-left:1px solid #dee2e6; border-right:1px solid #dee2e6">
+                    <i class="fas fa-sort"></i> Application</th>
+                  <th id="s_sort" scope="col" style="width: 22%; padding-right:10px; border-right:1px solid #dee2e6">
+                    <i class="fas fa-sort"></i> Student</th>
+                  <th id="p_sort" scope="col" style="width: 22%; padding-right:10px; border-right:1px solid #dee2e6">
+                    <i class="fas fa-sort"></i> Professor</th>
+                  <th id="c_sort" scope="col" style="padding-right:10px; border-right:1px solid #dee2e6">
+                    <i class="fas fa-sort"></i> Course Number</th>
+                </tr>
+              </thead>
+              <tbody id="matches_table_body">
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TREE -->
+    <div class="tree-container">
+      <div id="tree" class="card h-100" oncontextmenu="return false;">
+        <div class="card-header d-flex">
+          <button id="students_button" type="button" class="btn btn-primary m-1">
+            <i class="fas fa-users"></i> Students
+            <span class="badge badge-pill badge-primary" id="matches">
+              <script>
+                document.write(Object.keys(s_dict).length);
+              </script>
+            </span>
+            <script>
+              document.getElementById("students_button").addEventListener("click", function () {
+                document.getElementById("students_button").setAttribute("class", "btn btn-primary m-1")
+                document.getElementById("professors_button").setAttribute("class", "btn btn-outline-info m-1")
+                document.getElementById("courses_button").setAttribute("class", "btn btn-outline-secondary m-1")
+                treeData = generateDatabaseJSON(a_list, 0);
+                // save previous 
+                if (last.professors[0]) {
+                  last.professors[1] = document.getElementById('tree_svg');
+                } else if (last.courses[0]) {
+                  last.courses[1] = document.getElementById('tree_svg');
+                }
+                // remove
+                d3.selectAll("#tree_svg").remove();
+                // append or render
+                if (last.students[0])
+                  render_tree(treeData, size, margin, false);
+                else if (last.students[1] != null) {
+                  document.getElementById('tree').appendChild(last.students[1]);
+                } else {
+                  render_tree(treeData, size, margin, false);
+                }
+                last.students[0] = true;
+                last.professors[0] = false;
+                last.courses[0] = false;
+              });
+            </script>
+          </button>
+          <button id="professors_button" type="button" class="btn btn-outline-info m-1">
+            <i class="fas fa-users"></i> Professors
+            <span class="badge badge-pill badge-info" id="matches">
+              <script>
+                document.write(Object.keys(p_dict).length);
+              </script>
+            </span>
+            <script>
+              document.getElementById("professors_button").addEventListener("click", function () {
+                document.getElementById("students_button").setAttribute("class", "btn btn-outline-primary m-1")
+                document.getElementById("professors_button").setAttribute("class", "btn btn-info m-1")
+                document.getElementById("courses_button").setAttribute("class", "btn btn-outline-secondary m-1")
+                treeData = generateDatabaseJSON(a_list, 1);
+                // save previous 
+                if (last.students[0]) {
+                  last.students[1] = document.getElementById('tree_svg');
+                } else if (last.courses[0]) {
+                  last.courses[1] = document.getElementById('tree_svg');
+                }
+                // remove
+                d3.selectAll("#tree_svg").remove();
+                // append or render
+                if (last.professors[0])
+                  render_tree(treeData, size, margin, false);
+                else if (last.professors[1] != null) {
+                  document.getElementById('tree').appendChild(last.professors[1]);
+                } else {
+                  render_tree(treeData, size, margin, false);
+                }
+                last.students[0] = false;
+                last.professors[0] = true;
+                last.courses[0] = false;
+              });
+            </script>
+          </button>
+          <button id="courses_button" type="button" class="btn btn-outline-secondary m-1">
+            <i class="fas fa-book"></i> Courses
+            <span class="badge badge-pill badge-secondary" id="matches">
+              <script>
+                document.write(Object.keys(c_dict).length);
+              </script>
+            </span>
+            <script>
+              document.getElementById("courses_button").addEventListener("click", function () {
+                document.getElementById("students_button").setAttribute("class", "btn btn-outline-primary m-1")
+                document.getElementById("professors_button").setAttribute("class", "btn btn-outline-info m-1")
+                document.getElementById("courses_button").setAttribute("class", "btn btn-secondary m-1")
+                treeData = generateDatabaseJSON(a_list, 2);
+                // save previous 
+                if (last.professors[0]) {
+                  last.professors[1] = document.getElementById('tree_svg');
+                } else if (last.students[0]) {
+                  last.students[1] = document.getElementById('tree_svg');
+                }
+                // remove
+                d3.selectAll("#tree_svg").remove();
+                // append or render
+                if (last.courses[0])
+                  render_tree(treeData, size, margin, false);
+                else if (last.courses[1] != null) {
+                  document.getElementById('tree').appendChild(last.courses[1]);
+                } else {
+                  render_tree(treeData, size, margin, false);
+                }
+                last.students[0] = false;
+                last.professors[0] = false;
+                last.courses[0] = true;
+              });
+            </script>
+          </button>
+          <div class="row align-items-center justify-content-end ml-auto">
+            <div class="col ml-auto">
+              <span class="align-middle">
+                <i id="check2" class="fas fa-check-square text-success ml-auto" style="display:none;"></i>
+              </span>
+            </div>
+            <div class="col pl-0">
+              <button id="priority_button" type="button" class="btn btn-outline-success m-1" disabled>
+                Add Priority
+                <script>
+                  document.getElementById("priority_button").addEventListener("click", function () {
+                    for (let i = 0; i < priority_list.length; i++) {
+                      for (let j = 0; j < priority_list[i].length; j++) {
+                        if (selected[0] == priority_list[i][j] ||
+                          selected[1] == priority_list[i][j] ||
+                          selected[2] == priority_list[i][j]) {
+                          window.alert(
+                            "Error: There is a conflicting application already present in the priority list.");
+                          return;
+                        }
+                      }
+                    }
+                    priority_list.push(selected);
+                    document.getElementById("priorities").innerHTML = priority_list.length;
+                    document.getElementById("check2").style.visibility = 'visible';
+                    $("#check2").fadeIn();
+                    $("#check2").fadeOut();
+                    selected = [];
+                    document.getElementById("priority_button").disabled = true;
+                    var entry = [];
+                    for (let i = 0; i < priority_list.length; i++)
+                      entry.push(dictionary[priority_list[i]]);
+                    document.getElementById("priorities_table_body").innerHTML = update_priorities_table(entry);
+                    addListenersToPriorities(entry);
+                    document.getElementById("apps_table_body").innerHTML = update_apps_table();
+                    addListenersToApps();
+                    document.getElementById("warn").style.visibility = 'visible';
+                  });
+                </script>
+              </button>
+            </div>
+          </div>
+          <!-- <button id="priority_button" type="button" class="btn btn-outline-success m-1" disabled>
+            Add Priority
+            <script>
+              document.getElementById("priority_button").addEventListener("click", function () {
+                for (let i = 0; i < priority_list.length; i++) {
+                  for (let j = 0; j < priority_list[i].length; j++) {
+                    if (selected[0] == priority_list[i][j] ||
+                      selected[1] == priority_list[i][j] ||
+                      selected[2] == priority_list[i][j]) {
+                      window.alert(
+                        "Error: There is a conflicting application already present in the priority list.");
+                      return;
+                    }
+                  }
+                }
+                priority_list.push(selected);
+                document.getElementById("priorities").innerHTML = priority_list.length;
+                document.getElementById("check2").style.visibility = 'visible';
+                $("#check2").fadeIn();
+                $("#check2").fadeOut();
+                selected = [];
+                document.getElementById("priority_button").disabled = true;
+                var entry = [];
+                for (let i = 0; i < priority_list.length; i++)
+                  entry.push(dictionary[priority_list[i]]);
+                document.getElementById("priorities_table_body").innerHTML = update_priorities_table(entry);
+                addListenersToPriorities(entry);
+                document.getElementById("apps_table_body").innerHTML = update_apps_table();
+                addListenersToApps();
+                document.getElementById("warn").style.visibility = 'visible';
+              });
+            </script>
+          </button> -->
+        </div>
+        <!-- TREE VISUALIZATION -->
+        <script>
+          treeData = generateDatabaseJSON(a_list, 0);
+          var h = document.getElementById('tree').clientHeight,
+            w = document.getElementById('tree').clientWidth,
+            size = {
+              height: h,
+              width: w
+            };
+          var margin = {
+            top: 10,
+            right: 10,
+            bottom: 70,
+            left: 0
+          };
+          render_tree(treeData, size, margin, false);
+        </script>
+      </div>
+    </div>
+  </div>
+</body>
+
+
+</html>
