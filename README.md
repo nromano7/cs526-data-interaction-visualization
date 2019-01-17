@@ -7,4 +7,4 @@ For student to become proficient on the current major techniques and systems for
 ## Project Description  
 For this project our group chose to explore the visual analytics problem space of the classic 3D Matching problem which is NP-Hard in complexity throey. We developed a web application using Node/Express.js and MySQL for the backend, and vanilla Javascript, HTML, and Bootstrap for the front-end. The main objective of the web app is to display relationships among entities in the 3D matching problem and provide features for user interaction that allow a user to automatically generate a matching using a 2-approx. algorithm as well as manually create and/or modify a matching. This web app has the potential to serve as an academic tool for exploring the 3D Matching problem. A potential use case: investigate how adding constraints to the problem can affect the size of a maximal matching.
 
-![screenshot](https://github.com/nromano7/data-interaction-visualization/blob/master/screenshots/page_screenshot.PNG)
+![screenshot](https://github.com/nromano7/cs526-data-interaction-visualization/blob/master/screenshots/page_screenshot.PNG)
